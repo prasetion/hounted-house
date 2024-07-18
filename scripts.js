@@ -1,98 +1,149 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { Timer } from "three/addons/misc/Timer.js";
+import GUI from "lil-gui";
 
-// canvas
+/**
+ * Base
+ */
+// Debug
+const gui = new GUI();
+
+// Canvas
 const canvas = document.querySelector("canvas.webgl");
 
-// cursor
-const cursor = {
-  x: 0,
-  y: 0,
-};
-
-window.addEventListener("mousemove", (event) => {
-  cursor.x = event.clientX / sizes.width - 0.5;
-  cursor.y = -(event.clientY / sizes.height - 0.5);
-  console.log(cursor.x, cursor.y);
-});
-
-// scene
+// Scene
 const scene = new THREE.Scene();
 
-// mesh standart material
-const material = new THREE.MeshStandardMaterial();
-material.metalness = 0.5;
-material.roughness = 0.5;
+/**
+ * House
+ */
+// Temporary sphere
+const sphere = new THREE.Mesh(
+  new THREE.SphereGeometry(1, 32, 32),
+  new THREE.MeshStandardMaterial({ roughness: 0.7 })
+);
 
-// object
-const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), material);
-sphere.castShadow = true;
-scene.add(sphere);
+// Floor
+const floor = new THREE.Mesh(
+  new THREE.PlaneGeometry(20, 20),
+  new THREE.MeshStandardMaterial()
+);
+floor.rotation.x = -Math.PI * 0.5;
 
-// directional light
-const directionalLight = new THREE.DirectionalLight(0x00fffc, 1);
+// house
+const house = new THREE.Group();
+
+// walls
+const walls = new THREE.Mesh(
+  new THREE.BoxGeometry(4, 2.5, 4),
+  new THREE.MeshStandardMaterial()
+);
+walls.position.y += 1.25;
+
+// roof
+const roof = new THREE.Mesh(
+  new THREE.ConeGeometry(3.5, 1.5, 4),
+  new THREE.MeshStandardMaterial()
+);
+roof.position.y = 2.5 + 0.75;
+roof.rotation.y = Math.PI * 0.25;
+
+// door
+const door = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.2, 2.2),
+  new THREE.MeshStandardMaterial()
+);
+door.position.y = 1;
+door.position.z = 2 + 0.01;
+
+// Bushes
+const bushGeometry = new THREE.SphereGeometry(1, 16, 16);
+const bushMaterial = new THREE.MeshStandardMaterial();
+
+house.add(walls, roof, door);
+
+scene.add(sphere, floor, house);
+
+/**
+ * Lights
+ */
+// Ambient light
+const ambientLight = new THREE.AmbientLight("#ffffff", 0.5);
+scene.add(ambientLight);
+
+// Directional light
+const directionalLight = new THREE.DirectionalLight("#ffffff", 1.5);
+directionalLight.position.set(3, 2, -8);
 scene.add(directionalLight);
 
-// sizes
+/**
+ * Sizes
+ */
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight,
 };
 
-// event listener resize
 window.addEventListener("resize", () => {
-  console.log("window has been resized");
-
-  // update sizes
+  // Update sizes
   sizes.width = window.innerWidth;
   sizes.height = window.innerHeight;
 
-  // update camera
+  // Update camera
   camera.aspect = sizes.width / sizes.height;
   camera.updateProjectionMatrix();
 
-  // update renderer
+  // Update renderer
   renderer.setSize(sizes.width, sizes.height);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-// camera
+/**
+ * Camera
+ */
+// Base camera
 const camera = new THREE.PerspectiveCamera(
   75,
   sizes.width / sizes.height,
-  0.01,
-  1000
+  0.1,
+  100
 );
-
-camera.position.z = 3;
+camera.position.x = 4;
+camera.position.y = 2;
+camera.position.z = 5;
 scene.add(camera);
 
-// controls
+// Controls
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 
-// renderer
+/**
+ * Renderer
+ */
 const renderer = new THREE.WebGLRenderer({
   canvas: canvas,
 });
-
 renderer.setSize(sizes.width, sizes.height);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-const clock = new THREE.Clock();
+/**
+ * Animate
+ */
+const timer = new Timer();
 
 const tick = () => {
-  // update controls
+  // Timer
+  timer.update();
+  const elapsedTime = timer.getElapsed();
+
+  // Update controls
   controls.update();
 
-  const elapsedTime = clock.getElapsedTime();
-
-  // Update the sphere
-  sphere.position.x = Math.cos(elapsedTime) * 1.5;
-  sphere.position.z = Math.sin(elapsedTime) * 1.5;
-  sphere.position.y = Math.abs(Math.sin(elapsedTime * 3));
-
-  // render per frame
+  // Render
   renderer.render(scene, camera);
+
+  // Call tick again on the next frame
   window.requestAnimationFrame(tick);
 };
 
